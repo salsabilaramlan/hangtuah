@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
+
 export default defineConfig(() => {
   return {
+    base: '/hangtuah/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
@@ -20,3 +22,4 @@ export default defineConfig(() => {
     },
   };
 });
+
