@@ -1,0 +1,6 @@
+{
+  "name": "Pengembaraan Hang Tuah 3D",
+  "description": "Permainan pengembaraan 3D Tokoh Terbilang Kesultanan Melayu Melaka dengan latar belakang pemandangan tradisi yang indah dan mendalam.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
