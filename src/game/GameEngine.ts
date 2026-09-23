@@ -1263,8 +1263,8 @@ export class GameEngine {
     // Camera-relative directional vectors
     const forwardX = -Math.sin(this.camera.angleY);
     const forwardZ = Math.cos(this.camera.angleY);
-    const rightX = Math.cos(this.camera.angleY);
-    const rightZ = Math.sin(this.camera.angleY);
+    const rightX = -Math.cos(this.camera.angleY);
+    const rightZ = -Math.sin(this.camera.angleY);
 
     let inputForward = 0, inputRight = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) inputForward += 1;
