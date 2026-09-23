@@ -277,69 +277,96 @@ interface VictoryModalProps {
   isOpen: boolean;
   score: number;
   stars: number;
+  quizCorrect?: number;
+  totalQuiz?: number;
   onPlayAgain: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
-  isOpen,
-  score,
-  stars,
-  onPlayAgain
+  isOpen, score, stars, quizCorrect = 0, totalQuiz = 0, onPlayAgain
 }) => {
+  const [name, setName] = React.useState('');
+  const [badge, setBadge] = React.useState('');
+  const [badgeName, setBadgeName] = React.useState('');
+  const [error, setError] = React.useState('');
+  React.useEffect(() => {
+    setName(''); setBadge(''); setBadgeName(''); setError('');
+  }, [isOpen]);
   if (!isOpen) return null;
 
+  const createBadge = (event: React.FormEvent) => {
+    event.preventDefault();
+    const cleanName = name.trim().replace(/\s+/g, ' ');
+    if (!cleanName) { setError('Sila masukkan nama anda dahulu.'); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200; canvas.height = 1200;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { setError('Badge tidak dapat dijana. Sila cuba semula.'); return; }
+    const bg = ctx.createLinearGradient(0, 0, 1200, 1200);
+    bg.addColorStop(0, '#102f38'); bg.addColorStop(1, '#0f172a');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1200, 1200);
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 5; ctx.strokeRect(38, 38, 1124, 1124);
+    ctx.lineWidth = 1; ctx.strokeRect(54, 54, 1092, 1092);
+    ctx.textAlign = 'center';
+    const text = (value: string, y: number, size: number, color = '#f8fafc', weight = 'bold') => {
+      ctx.fillStyle = color; ctx.font = weight + ' ' + size + 'px sans-serif';
+      while (ctx.measureText(value).width > 1000 && size > 16) {
+        size -= 1; ctx.font = weight + ' ' + size + 'px sans-serif';
+      }
+      ctx.fillText(value, 600, y);
+    };
+    text('PENGEMBARAAN HANG TUAH', 132, 34, '#e9cb74');
+    text('SEJARAH TAHUN 4', 182, 23, '#a7c8c9');
+    // Gold shield and star drawn locally, so the PNG needs no external images.
+    ctx.beginPath(); ctx.moveTo(600, 238); ctx.lineTo(760, 298);
+    ctx.lineTo(742, 440); ctx.quadraticCurveTo(720, 522, 600, 568);
+    ctx.quadraticCurveTo(480, 522, 458, 440); ctx.lineTo(440, 298); ctx.closePath();
+    const gold = ctx.createLinearGradient(440, 240, 760, 568);
+    gold.addColorStop(0, '#ffedb0'); gold.addColorStop(1, '#b98524');
+    ctx.fillStyle = gold; ctx.fill();
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const angle = -Math.PI / 2 + i * Math.PI / 5;
+      const radius = i % 2 === 0 ? 88 : 39;
+      const x = 600 + Math.cos(angle) * radius, y = 389 + Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fillStyle = '#173a40'; ctx.fill();
+    text('BADGE WIRA ILMU', 646, 48, '#ffe49c');
+    text('Dianugerahkan kepada', 710, 25, '#a7c8c9', 'normal');
+    text(cleanName, 782, 48);
+    text('Telah menyelesaikan kuiz Hang Tuah', 842, 26, '#cbd5e1', 'normal');
+    text('Jawapan betul: ' + quizCorrect + ' / ' + totalQuiz, 913, 34, '#ffe49c');
+    text('Markah permainan: ' + score + '  |  Bintang: ' + stars + ' / 3', 966, 27, '#cbd5e1');
+    text('Berani belajar. Bijak berusaha.', 1060, 25, '#a7c8c9', 'normal');
+    setBadge(canvas.toDataURL('image/png')); setBadgeName(cleanName); setError('');
+  };
+
+  const buttonClass = 'w-full block py-3 px-4 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300';
   return (
-    <div id="modal-victory" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 text-center">
-      <div className="w-full max-w-lg rounded-3xl border-3 border-[#ffd32a] bg-gradient-to-b from-[#1e293b] to-[#0f172a] p-6 md:p-8 shadow-2xl">
-        <div className="text-5xl mb-2 animate-bounce">👑 🏆 🌟</div>
-        <h2 className="text-2xl md:text-3xl font-black text-[#ffd32a] mb-1">
-          SYABAS, LAKSAMANA TERBILANG!
-        </h2>
-        <p className="text-xs md:text-sm text-slate-400 mb-4">
-          Anda telah berjaya menyelesaikan seluruh pengembaraan Hang Tuah!
-        </p>
-
-        <div className="flex justify-center gap-6 my-4">
-          <div className="flex flex-col items-center gap-1 text-xs">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-white flex items-center justify-center text-xl shadow-lg">
-              🗡️
+    <div id="modal-victory" role="dialog" aria-modal="true" aria-labelledby="victory-title" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-4 text-center">
+      <div className="w-full max-w-lg rounded-3xl border-2 border-amber-400 bg-slate-900 p-5 md:p-7 shadow-2xl max-h-[92dvh] overflow-y-auto">
+        <h2 id="victory-title" className="text-2xl font-black text-amber-300 mb-2">{badge ? 'BADGE ANDA SUDAH SIAP!' : 'SYABAS, KUIZ SELESAI!'}</h2>
+        {!badge ? (
+          <form onSubmit={createBadge} className="space-y-4 text-left">
+            <p className="text-slate-300 text-sm text-center">Jawapan betul: <strong>{quizCorrect} / {totalQuiz}</strong> · Markah permainan: <strong>{score}</strong></p>
+            <p className="text-slate-300 text-sm text-center">Masukkan nama untuk menerima badge Wira Ilmu anda.</p>
+            <div>
+              <label htmlFor="student-badge-name" className="block text-amber-100 font-bold text-sm mb-2">Nama murid</label>
+              <input id="student-badge-name" value={name} onChange={e => { setName(e.target.value); setError(''); }} maxLength={60} autoFocus autoComplete="off" placeholder="Nama anda" aria-describedby="badge-name-help" aria-invalid={!!error} className="w-full rounded-xl bg-slate-950 border border-slate-500 text-white px-4 py-3 text-base select-text focus:outline-2 focus:outline-amber-300" />
+              <p id="badge-name-help" className="text-xs text-slate-400 mt-2">Nama ini hanya digunakan pada badge di peranti anda.</p>
             </div>
-            <span className="font-bold text-slate-200">Keberanian</span>
+            {error && <p role="alert" className="text-red-300 text-sm">{error}</p>}
+            <button type="submit" className={buttonClass}>Paparkan Badge Saya</button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <img src={badge} alt={'Badge Wira Ilmu untuk ' + badgeName + '. Jawapan betul: ' + quizCorrect + ' daripada ' + totalQuiz + '. Markah permainan: ' + score} className="w-full rounded-xl" />
+            <a href={badge} download="badge-hang-tuah.png" className={buttonClass}>Muat Turun Badge (PNG)</a>
+            <button onClick={() => setBadge('')} className="text-amber-200 underline text-sm py-2">Betulkan Nama</button>
           </div>
-
-          <div className="flex flex-col items-center gap-1 text-xs">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-white flex items-center justify-center text-xl shadow-lg">
-              🛡️
-            </div>
-            <span className="font-bold text-slate-200">Kesetiaan</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-1 text-xs">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-white flex items-center justify-center text-xl shadow-lg">
-              📜
-            </div>
-            <span className="font-bold text-slate-200">Kebijaksanaan</span>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 mb-5">
-          <div className="text-xs text-slate-400 mb-1">Markah Keseluruhan:</div>
-          <div className="text-3xl font-black text-[#ffd32a] font-mono mb-2">{score}</div>
-          <div className="text-xs font-bold text-emerald-400">
-            {stars} / 3 Bintang Terbilang Diperoleh ⭐
-          </div>
-          <p className="mt-3 text-xs italic text-amber-200/90">
-            &ldquo;Tuah bukan sekadar tangkas bersilat, tetapi teguh setia dan tajam akal budi mempertahankan maruah nusa bangsa.&rdquo;
-          </p>
-        </div>
-
-        <button
-          id="btn-play-again"
-          onClick={onPlayAgain}
-          className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-sm active:scale-98 transition-all shadow-xl shadow-amber-500/25"
-        >
-          Main Semula Dari Mula 🔄
-        </button>
+        )}
+        <button id="btn-play-again" onClick={onPlayAgain} className="mt-4 w-full py-3 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-800 font-bold text-sm">Main Semula Dari Mula</button>
       </div>
     </div>
   );
