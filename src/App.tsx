@@ -40,6 +40,9 @@ export default function App() {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<{ correct: boolean; text: string } | null>(null);
 
+  const [quizCorrect, setQuizCorrect] = useState(0);
+  const quizAnsweredRef = useRef(false);
+
   // Modals
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [isPauseOpen, setIsPauseOpen] = useState(false);
@@ -132,6 +135,8 @@ export default function App() {
       engine.onQuizStart = () => {
         const qList = engine.stages[2].quizQuestions || [];
         setTotalQuiz(qList.length);
+        setQuizCorrect(0);
+        quizAnsweredRef.current = false;
         setQuizIndex(0);
         setQuizQuestion(qList[0] || null);
         setSelectedOptionIndex(null);
@@ -157,6 +162,9 @@ export default function App() {
   // Keyboard Event Handlers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
+      if (engineRef.current?.isVictory) return;
       SoundFX.init();
       const engine = engineRef.current;
       if (!engine) return;
@@ -255,10 +263,12 @@ export default function App() {
 
   // Quiz Answer Handler
   const handleAnswerQuiz = (index: number) => {
-    if (!quizQuestion || !engineRef.current) return;
+    if (!quizQuestion || !engineRef.current || quizAnsweredRef.current) return;
+    quizAnsweredRef.current = true;
     setSelectedOptionIndex(index);
 
     if (index === quizQuestion.correct) {
+      setQuizCorrect(value => value + 1);
       SoundFX.playCorrect();
       setQuizFeedback({
         correct: true,
@@ -277,10 +287,17 @@ export default function App() {
 
   const handleNextQuizQuestion = () => {
     if (!engineRef.current) return;
+    if (!quizAnsweredRef.current) return;
+    quizAnsweredRef.current = false;
     const nextIdx = quizIndex + 1;
     const qList = engineRef.current.stages[2].quizQuestions || [];
 
     if (nextIdx >= qList.length) {
+      // Freeze the game while the pupil enters their name and saves the badge.
+      engineRef.current.isVictory = true;
+      engineRef.current.isPaused = true;
+      engineRef.current.keys = {};
+      engineRef.current.joystick = { x: 0, y: 0, active: false };
       // Quiz Finished, Victory!
       engineRef.current.isQuizActive = false;
       engineRef.current.stars = 3;
@@ -423,13 +440,19 @@ export default function App() {
       {/* Victory Modal */}
       <VictoryModal
         isOpen={isVictoryOpen}
+        quizCorrect={quizCorrect}
+        totalQuiz={totalQuiz}
         score={score}
         stars={stars}
         onPlayAgain={() => {
           setIsVictoryOpen(false);
+          setQuizCorrect(0);
+          quizAnsweredRef.current = false;
           setScore(0);
           setStars(0);
           if (engineRef.current) {
+            engineRef.current.isPaused = false;
+            engineRef.current.isVictory = false;
             engineRef.current.score = 0;
             engineRef.current.stars = 0;
             engineRef.current.loadStage(0);
